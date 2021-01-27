@@ -6,6 +6,7 @@ from pathlib import Path
 
 import praw
 from dotenv import load_dotenv
+from praw.models import Submission
 
 dotenv_path = join(Path(dirname(__file__)).parent, '.env')
 load_dotenv(dotenv_path)
@@ -26,5 +27,6 @@ reddit = praw.Reddit(client_id=client_id,
 print(reddit.user.me())
 
 # ホットなスレを出す
-for s in reddit.subreddit('newsokur').hot(limit=20):
-    print(f"title: {s.title}, score: {s.score}")
+for s in reddit.subreddit('newsokur').hot(limit=20):  # type: Submission
+    if not s.is_self:  # リンクポストの場合
+        print(f"title: {s.title}, link: {s.url}")
