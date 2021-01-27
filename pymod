@@ -1,0 +1,43 @@
+#!/bin/bash
+# Description: Creates a new python module skeleton in your project.
+# Note: will exit if the directory already exists to prevent overwriting.
+#
+# usage: pymod MODULE_NAME
+# example: $ pymod foo
+#  result: foo/
+#          |_ __init__.py
+#          |_ foo.py
+#
+# example: $ pymod /path/to/project/foo
+#  result: /path/to/project/foo/
+#          |_ __init__.py
+#          |_ foo.py
+#
+# Author: Chris Engelsma
+# https://gist.github.com/chrisengelsma/b03afb3ff4c5de1f6c9b1528ab79980a
+
+
+PYTHON_BIN='/usr/bin/env python3'
+ENCODING='utf-8'
+
+MODULE=$(basename $1)
+
+if [ -d $1 ]; then
+  echo "$1 already exists, exiting..."
+  exit 1
+else
+  mkdir $1
+  cat <<EOT >> ${1}/__init__.py
+#!${PYTHON_BIN}
+# -*- coding: ${ENCODING} -*-
+from .${MODULE} import *
+
+EOT
+
+  cat <<EOT >> ${1}/${MODULE}.py
+#!${PYTHON_BIN}
+# -*- coding: ${ENCODING} -*-
+
+EOT
+
+fi
