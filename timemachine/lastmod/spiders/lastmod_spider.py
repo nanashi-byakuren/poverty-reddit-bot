@@ -1,4 +1,5 @@
 import logging
+from gzip import decompress
 from typing import List
 from urllib.parse import urlparse, ParseResult
 
@@ -45,14 +46,26 @@ class LastmodSpider(Spider):
         if last_modified:
             self.show_lastmod(s, last_modified)
 
-    @staticmethod
-    def parse_sitemap(sitemap_url: str, target_url: str) -> str:
+    def parse_sitemap(self, sitemap_url: str, target_url: str):
+        logging.info(f"sitemap_url: {sitemap_url}")
         res = requests.get(sitemap_url)
-        raw = xmltodict.parse(res.text)
+        if sitemap_url.endswith('.gz'):
+            binary: bytes = bytes(res.text, encoding="utf-8")
+            text: str = decompress(binary)
+            raw = xmltodict.parse(text)
+        else:
+            raw = xmltodict.parse(res.text)
+
+        if dig(raw, 'sitemapindex', 'sitemap'):
+            for sitemap_dict in dig(raw, 'sitemapindex', 'sitemap'):
+                lastmod = self.parse_sitemap(sitemap_dict['loc'], target_url)
+                if lastmod:
+                    return lastmod
 
         for url_dict in raw['urlset']['url']:
             if url_dict["loc"] == target_url:
                 return url_dict["lastmod"]
+        return None
 
     @staticmethod
     def show_lastmod(s: Submission, last_modified: str):
