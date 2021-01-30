@@ -35,7 +35,7 @@ def main(args):
     # 私は誰
     print(reddit.user.me())
     # ホットなスレを出す
-    submissions: List[Submission] = [s for s in reddit.subreddit(args.subreddit).hot(limit=20) if not s.is_self]
+    submissions: List[Submission] = list(reddit.subreddit(args.subreddit).new(limit=20))
 
     # settings.pyで設定された内容を取得する
     settings = get_project_settings()

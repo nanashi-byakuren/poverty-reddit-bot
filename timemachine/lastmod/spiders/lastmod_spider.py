@@ -14,12 +14,17 @@ class LastmodSpider(Spider):
 
     def start_requests(self):
         assert dig(self.settings.attributes, 'SUBMISSIONS'), "submissionが１つもないです"
-        self.submissions = dig(self.settings.attributes, 'SUBMISSIONS').value
+        self.submissions: List[Submission] = dig(self.settings.attributes, 'SUBMISSIONS').value
 
-        for url in [s.url for s in self.submissions]:
-            self.log(f"url: {url}")
-            yield Request(url=url, callback=self.parse)
+        for s in self.submissions:
+            cb_args = {'submission': s}
+            request = Request(
+                s.url,
+                callback=self.parse_lastmod, cb_kwargs=dict(content_dict=cb_args)
+            )
+            yield request
 
-    def parse(self, response):
+    def parse_lastmod(self, response, content_dict: dict):
         last_modified = response.headers.get('Last-Modified')
-        self.log(f"last_modified {last_modified}")
+        submission: Submission = content_dict['submission']
+        self.log(f"{submission.title}, last_modified {last_modified}")
