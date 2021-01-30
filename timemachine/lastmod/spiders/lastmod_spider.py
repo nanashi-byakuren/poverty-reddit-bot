@@ -1,3 +1,4 @@
+import logging
 from typing import List
 
 from dict_digger import dig
@@ -27,4 +28,4 @@ class LastmodSpider(Spider):
     def parse_lastmod(self, response, content_dict: dict):
         last_modified = response.headers.get('Last-Modified')
         submission: Submission = content_dict['submission']
-        self.log(f"{submission.title}, last_modified {last_modified}")
+        logging.info(f"{submission.title}, last_modified {last_modified}")

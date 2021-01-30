@@ -12,6 +12,11 @@ BOT_NAME = 'lastmod'
 SPIDER_MODULES = ['lastmod.spiders']
 NEWSPIDER_MODULE = 'lastmod.spiders'
 
+# Scrapy Logging Level Change
+# https://stackoverflow.com/a/38329167/2565527
+LOG_LEVEL = 'INFO'
+# LOG_FORMAT = '%(levelname)s: %(message)s'
+# LOG_FILE = 'log.txt'
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101 Firefox/78.0'
