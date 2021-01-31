@@ -1,9 +1,10 @@
 import gzip
 import logging
+import re
 import tempfile
 import traceback
-from typing import List, Optional
-from urllib.parse import urlparse, ParseResult
+from typing import List, Optional, Pattern, Tuple
+from urllib.parse import urlparse, ParseResult, quote
 
 import requests
 import xmltodict as xmltodict
@@ -38,11 +39,13 @@ class LastmodSpider(Spider):
 
     def parse_lastmod(self, response, content_dict: dict):
 
+        s: Submission = content_dict['submission']
+        self.start_logging(s)
+
         # ヘッダーにある Last-Modifiedで判断（→これはあまり取得できない）
         last_modified: str = response.headers.get('Last-Modified')
-        s: Submission = content_dict['submission']
         if last_modified:
-            self.show_lastmod(s, last_modified)
+            self.finish_logging(s, last_modified)
 
         # sitemapにある更新日付を見る
         session: Session = requests.Session()
@@ -54,15 +57,17 @@ class LastmodSpider(Spider):
                 (_, sitemap_url) = line.split(": ")
                 if not sitemap_url:  # もしrobots.txtに何もなければ決め打ちで取得する
                     sitemap_url = f"{parse_result.scheme}://{parse_result.netloc}/sitemap.xml"
-                last_modified = self.parse_sitemap(sitemap_url, s.url, session)
+                last_modified: Optional[Tuple[str, str]] = self.parse_sitemap(sitemap_url, s.url, session)
                 if last_modified:
-                    self.show_lastmod(s, last_modified)
+                    self.finish_logging(s, last_modified)
                     return
         except Exception as e:
             logging.error("failed to access robots.txt or sitemap.xml...")
             logging.error(traceback.format_exc())
 
-    def parse_sitemap(self, sitemap_url: str, target_url: str, session: Session, depth: int = 0) -> Optional[str]:
+    def parse_sitemap(
+            self, sitemap_url: str, target_url: str, session: Session, depth: int = 0
+    ) -> Optional[Tuple[str, str]]:
         try:
             res: Response = session.get(sitemap_url)
             if res.status_code != 200:
@@ -94,9 +99,18 @@ class LastmodSpider(Spider):
                     if dig(url_dict, 'loc') == target_url:
                         logging.info(f"parse urls = {len(raw['urlset']['url'])}, found hooray !")
                         logging.info(f"sitemap dict => {url_dict}")
-                        if dig(url_dict, 'lastmod'):
-                            return dig(url_dict, 'lastmod')
-                        return '(更新日付) ないです'  # sitemap.xmlに記述はあるが、最終更新日付がない
+
+                        # 作成日時と更新日時を取得してみる
+                        lastmod: Tuple[str, str] = \
+                            find_item_recursive(obj=url_dict, key_r=re.compile(".*lastmod"))
+                        pub_day: Tuple[str, str] = \
+                            find_item_recursive(obj=url_dict, key_r=re.compile(".*publication_date"))
+
+                        if pub_day:
+                            return pub_day
+                        if lastmod:
+                            return lastmod
+                        return 'lastmod', '(更新日付) ないです'  # sitemap.xmlに記述はあるが、最終更新日付がない等
                 logging.debug(f"parse urls = {len(raw['urlset']['url'])}, not found !")
 
         except Exception as e:
@@ -106,5 +120,22 @@ class LastmodSpider(Spider):
         return None
 
     @staticmethod
-    def show_lastmod(s: Submission, last_modified: str):
-        logging.info(f"{s.title}, url: {s.url}, last_modified {last_modified}")
+    def start_logging(s: Submission):
+        logging.info(f"[START] {s.title}, url: {s.url}, \n permalink: https://www.reddit.com{quote(s.permalink)}")
+
+    @staticmethod
+    def finish_logging(s: Submission, last_modified: Tuple[str, str]):
+        logging.info(f"[FINISH] {s.title}, url: {s.url}, {last_modified}")
+
+
+def find_item_recursive(obj: dict, key_r: Pattern) -> Optional[Tuple[str, str]]:
+    matched_keys = list(filter(key_r.match, obj.keys()))
+    if len(matched_keys) > 0:
+        key: str = matched_keys[0]
+        return key, obj[key]
+    for k, v in obj.items():
+        if isinstance(v, dict):
+            item = find_item_recursive(obj=v, key_r=key_r)
+            if item is not None:
+                return item
+    return None
