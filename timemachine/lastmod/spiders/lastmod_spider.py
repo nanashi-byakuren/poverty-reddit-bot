@@ -1,5 +1,5 @@
+import gzip
 import logging
-from gzip import decompress
 from typing import List
 from urllib.parse import urlparse, ParseResult
 
@@ -7,6 +7,7 @@ import requests
 import xmltodict as xmltodict
 from dict_digger import dig
 from praw.models import Submission
+from requests import Response
 from scrapy import Spider, Request
 
 
@@ -47,24 +48,27 @@ class LastmodSpider(Spider):
             self.show_lastmod(s, last_modified)
 
     def parse_sitemap(self, sitemap_url: str, target_url: str):
-        logging.info(f"sitemap_url: {sitemap_url}")
-        res = requests.get(sitemap_url)
-        if sitemap_url.endswith('.gz'):
-            binary: bytes = bytes(res.text, encoding="utf-8")
-            text: str = decompress(binary)
-            raw = xmltodict.parse(text)
-        else:
-            raw = xmltodict.parse(res.text)
+        try:
+            res: Response = requests.get(sitemap_url, stream=True)
 
-        if dig(raw, 'sitemapindex', 'sitemap'):
-            for sitemap_dict in dig(raw, 'sitemapindex', 'sitemap'):
-                lastmod = self.parse_sitemap(sitemap_dict['loc'], target_url)
-                if lastmod:
-                    return lastmod
+            # ref: https://stackoverflow.com/a/61171713/2565527
+            if dig(res.headers._store, 'content-encoding') == ('content-encoding', 'gzip'):
+                res.raw.decode_content = True
+                raw = xmltodict.parse(gzip.GzipFile(fileobj=res.raw).fileobj.data)
+            else:
+                raw = xmltodict.parse(res.text)
 
-        for url_dict in raw['urlset']['url']:
-            if url_dict["loc"] == target_url:
-                return url_dict["lastmod"]
+            if dig(raw, 'sitemapindex', 'sitemap'):
+                for sitemap_dict in dig(raw, 'sitemapindex', 'sitemap'):
+                    lastmod = self.parse_sitemap(sitemap_dict['loc'], target_url)
+                    if lastmod:
+                        return lastmod
+
+            for url_dict in raw['urlset']['url']:
+                if url_dict["loc"] == target_url:
+                    return url_dict["lastmod"]
+        except Exception as e:
+            logging.error(f"sitemap_url: {sitemap_url}, target_url: {target_url} {e}")
         return None
 
     @staticmethod
