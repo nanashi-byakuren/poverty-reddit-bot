@@ -3,6 +3,7 @@ import logging
 import re
 import tempfile
 import traceback
+from argparse import Namespace
 from datetime import datetime
 from typing import List, Optional, Tuple
 from urllib.parse import urlparse, ParseResult, quote
@@ -25,6 +26,13 @@ class LastmodSpider(Spider):
     def __init__(self, *args, **kwargs):
         super(LastmodSpider, self).__init__(*args, **kwargs)
         self.submissions: List[Submission] = []
+        self.args: Namespace = Namespace()
+        self.self_reply = []
+
+    def __del__(self):
+        logging.info('===')
+        logging.info('\n'.join(self.self_reply))
+        logging.info('===')
 
     def parse(self, response, **kwargs):
         pass
@@ -32,6 +40,7 @@ class LastmodSpider(Spider):
     def start_requests(self):
         assert dig(self.settings.attributes, 'SUBMISSIONS'), "submissionが１つもないです"
         self.submissions: List[Submission] = dig(self.settings.attributes, 'SUBMISSIONS').value
+        self.args: Namespace = dig(self.settings.attributes, 'ARGS_OPTS').value
 
         for s in self.submissions:
             cb_args = {'submission': s}
@@ -42,14 +51,13 @@ class LastmodSpider(Spider):
             yield request
 
     def parse_lastmod(self, response, content_dict: dict):
-
         s: Submission = content_dict['submission']
         self.start_logging(s)
 
         # ヘッダーにある Last-Modifiedで判断（→これはあまり取得できない）
         last_modified: str = response.headers.get('Last-Modified')
         if last_modified:
-            self.finish_logging(s, last_modified)
+            self.finish_logging(s, ('lastmod', last_modified))
 
         # sitemapにある更新日付を見る
         session: Session = requests.Session()
@@ -136,12 +144,19 @@ class LastmodSpider(Spider):
 
         return None
 
-    @staticmethod
-    def start_logging(s: Submission):
+    def start_logging(self, s: Submission):
         logging.info(f"[START] {s.title}, url: {s.url}, \n permalink: https://www.reddit.com{quote(s.permalink)}")
 
-    @staticmethod
-    def finish_logging(s: Submission, last_modified: Tuple[str, str]):
+    def finish_logging(self, s: Submission, last_modified: Tuple[str, str]):
         logging.info(f"[FINISH] {s.title}, url: {s.url}, {last_modified}")
+        is_timemachine: bool = True
+
+        if not self.args.dry_run:
+            # 結果を書き込み
+            pass
+        if self.args.self_reply:
+            # マークダウン形式
+            check: str = 'x' if is_timemachine else ''
+            self.self_reply.append(f"- [{check}] **{last_modified}** [{s.title}]({s.parmalink})")
 
 

@@ -30,7 +30,7 @@ reddit_instance = praw.Reddit(client_id=client_id,
                               password=password)
 
 
-def main(args):
+def main(args: argparse.Namespace):
 
     # 私は誰
     print(reddit_instance.user.me())
@@ -43,6 +43,7 @@ def main(args):
     # settings.pyで設定された内容を取得する
     settings = get_project_settings()
     settings['SUBMISSIONS'] = submissions
+    settings['ARGS_OPTS'] = args
 
     # スクレイピングのプロセスを動かす
     process = CrawlerProcess(settings=settings)
@@ -56,7 +57,10 @@ if __name__ == '__main__':
     )
     parser.add_argument('--subreddit', required=False, default='newsokur', help='巡回対象サブレ')
     parser.add_argument('--submission-url', required=False, default=None, help='巡回したいサブミをURL指定する(デバッグ用)')
-    args = parser.parse_args()
+    parser.add_argument('--dry-run', required=False, action='store_true', help='「タイムマシン速報」のフレアとコメントをつけず、確認だけ行う')
+    parser.add_argument('--self-reply', required=False, action='store_false', help='抽出結果をユーザー自身の場所に書き込む')
+    parser.add_argument('--days-old-post', required=False, default=180, type=int, help='何日前のニュースならばタイムマシンとみなすか（デフォルト180日=半年前）')
+    args: argparse.Namespace = parser.parse_args()
 
     # scrapyのプロジェクト名を環境変数に設定する
     environ['SCRAPY_SETTINGS_MODULE'] = 'lastmod.settings'
