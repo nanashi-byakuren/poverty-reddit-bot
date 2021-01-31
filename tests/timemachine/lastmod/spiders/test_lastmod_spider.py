@@ -13,8 +13,8 @@ def test_parse_sitemap():
 def test_parse_sitemap_err1():
     lastmod_spider = LastmodSpider()
     lastmod: str = lastmod_spider.parse_sitemap(
-        sitemap_url='https://times.abema.tv/sitemap_other1.xml.gz',
-        target_url='https://times.abema.tv/news-article/8644234'
+        sitemap_url='https://trafficnews.jp/sitemap.xml',
+        target_url='https://trafficnews.jp/post/104121'
     )
     assert lastmod is not None, "lastmod is None"
 

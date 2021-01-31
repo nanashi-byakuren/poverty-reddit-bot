@@ -52,6 +52,9 @@ class LastmodSpider(Spider):
     def parse_sitemap(self, sitemap_url: str, target_url: str, depth: int = 0) -> Optional[str]:
         try:
             res: Response = requests.get(sitemap_url)
+            if res.status_code != 200:
+                logging.error(f"[depth={depth}] failed to parse {sitemap_url}, target={target_url} no sitemap")
+                return None  # そもそもサイトマップがない
 
             # ref: https://stackoverflow.com/a/2607239/2565527
             if sitemap_url.endswith('.gz'):
