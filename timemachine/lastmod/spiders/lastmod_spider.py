@@ -3,7 +3,8 @@ import logging
 import re
 import tempfile
 import traceback
-from typing import List, Optional, Pattern, Tuple
+from datetime import datetime
+from typing import List, Optional, Tuple
 from urllib.parse import urlparse, ParseResult, quote
 
 import requests
@@ -12,6 +13,9 @@ from dict_digger import dig
 from praw.models import Submission
 from requests import Response, Session
 from scrapy import Spider, Request
+
+from timemachine.ia import get_ia_available_url
+from timemachine.util import find_item_recursive
 
 
 class LastmodSpider(Spider):
@@ -52,15 +56,24 @@ class LastmodSpider(Spider):
         parse_result: ParseResult = urlparse(s.url)
         # robots.txtを見に行く
         try:
+            # IAに対象URLのアーカイブがあるかチェック（→ あれば最古の日付を取得する）
+            archived_datetime: datetime = get_ia_available_url(s.url)
             res: Response = session.get(f"{parse_result.scheme}://{parse_result.netloc}/robots.txt")
-            for line in [robots_txt for robots_txt in res.text.split("\n") if robots_txt.startswith("Sitemap:")]:
-                (_, sitemap_url) = line.split(": ")
-                if not sitemap_url:  # もしrobots.txtに何もなければ決め打ちで取得する
-                    sitemap_url = f"{parse_result.scheme}://{parse_result.netloc}/sitemap.xml"
+            sitemap_url = f"{parse_result.scheme}://{parse_result.netloc}/sitemap.xml"
+
+            if res.status_code != 200:
                 last_modified: Optional[Tuple[str, str]] = self.parse_sitemap(sitemap_url, s.url, session)
-                if last_modified:
-                    self.finish_logging(s, last_modified)
-                    return
+            else:
+                for line in [robots_txt for robots_txt in res.text.split("\n") if robots_txt.startswith("Sitemap:")]:
+                    (_, sitemap_url) = line.split(": ")
+                    last_modified: Optional[Tuple[str, str]] = self.parse_sitemap(sitemap_url, s.url, session)
+                    if last_modified:
+                        break
+
+            if last_modified:
+                self.finish_logging(s, last_modified)
+                return
+
         except Exception as e:
             logging.error("failed to access robots.txt or sitemap.xml...")
             logging.error(traceback.format_exc())
@@ -104,7 +117,7 @@ class LastmodSpider(Spider):
                         lastmod: Tuple[str, str] = \
                             find_item_recursive(obj=url_dict, key_r=re.compile(".*lastmod"))
                         pub_day: Tuple[str, str] = \
-                            find_item_recursive(obj=url_dict, key_r=re.compile(".*publication_date"))
+                            find_item_recursive(obj=url_dict, key_r=re.compile(".*publication.*"))
 
                         if pub_day:
                             return pub_day
@@ -113,7 +126,7 @@ class LastmodSpider(Spider):
                         return 'lastmod', '(更新日付) ないです'  # sitemap.xmlに記述はあるが、最終更新日付がない等
                 logging.debug(f"parse urls = {len(raw['urlset']['url'])}, not found !")
 
-        except Exception as e:
+        except Exception:
             logging.error(f"sitemap_url: {sitemap_url}, target_url: {target_url}")
             logging.error(traceback.format_exc())
 
@@ -128,14 +141,3 @@ class LastmodSpider(Spider):
         logging.info(f"[FINISH] {s.title}, url: {s.url}, {last_modified}")
 
 
-def find_item_recursive(obj: dict, key_r: Pattern) -> Optional[Tuple[str, str]]:
-    matched_keys = list(filter(key_r.match, obj.keys()))
-    if len(matched_keys) > 0:
-        key: str = matched_keys[0]
-        return key, obj[key]
-    for k, v in obj.items():
-        if isinstance(v, dict):
-            item = find_item_recursive(obj=v, key_r=key_r)
-            if item is not None:
-                return item
-    return None
