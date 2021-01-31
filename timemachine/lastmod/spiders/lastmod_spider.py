@@ -14,7 +14,7 @@ from praw.models import Submission
 from requests import Response, Session
 from scrapy import Spider, Request
 
-from timemachine.ia import get_ia_available_url
+from timemachine.ia import ia_oldest_available_url, ia_available_url
 from timemachine.util import find_item_recursive
 
 
@@ -57,7 +57,11 @@ class LastmodSpider(Spider):
         # robots.txtを見に行く
         try:
             # IAに対象URLのアーカイブがあるかチェック（→ あれば最古の日付を取得する）
-            archived_datetime: datetime = get_ia_available_url(s.url)
+            archived_datetime: datetime = ia_oldest_available_url(s.url)
+            if archived_datetime:
+                self.finish_logging(s, ('archived_date', archived_datetime.__str__()))
+                return
+
             res: Response = session.get(f"{parse_result.scheme}://{parse_result.netloc}/robots.txt")
             sitemap_url = f"{parse_result.scheme}://{parse_result.netloc}/sitemap.xml"
 
