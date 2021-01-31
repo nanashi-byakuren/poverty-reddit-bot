@@ -1,5 +1,6 @@
 import gzip
 import logging
+import tempfile
 from typing import List
 from urllib.parse import urlparse, ParseResult
 
@@ -49,12 +50,16 @@ class LastmodSpider(Spider):
 
     def parse_sitemap(self, sitemap_url: str, target_url: str):
         try:
-            res: Response = requests.get(sitemap_url, stream=True)
+            res: Response = requests.get(sitemap_url)
 
-            # ref: https://stackoverflow.com/a/61171713/2565527
-            if dig(res.headers._store, 'content-encoding') == ('content-encoding', 'gzip'):
-                res.raw.decode_content = True
-                raw = xmltodict.parse(gzip.GzipFile(fileobj=res.raw).fileobj.data)
+            # ref: https://stackoverflow.com/a/2607239/2565527
+            if sitemap_url.endswith('.gz'):
+                with tempfile.TemporaryFile(mode='w+b') as f:
+                    f.write(res.content)
+                    f.flush()
+                    f.seek(0)
+                    gzf = gzip.GzipFile(mode='rb', fileobj=f)
+                    raw = xmltodict.parse(gzf.read())
             else:
                 raw = xmltodict.parse(res.text)
 
