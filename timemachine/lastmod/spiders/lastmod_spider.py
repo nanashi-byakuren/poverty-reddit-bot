@@ -9,7 +9,7 @@ import requests
 import xmltodict as xmltodict
 from dict_digger import dig
 from praw.models import Submission
-from requests import Response
+from requests import Response, Session
 from scrapy import Spider, Request
 
 
@@ -37,21 +37,34 @@ class LastmodSpider(Spider):
             yield request
 
     def parse_lastmod(self, response, content_dict: dict):
+
         # ヘッダーにある Last-Modifiedで判断（→これはあまり取得できない）
         last_modified: str = response.headers.get('Last-Modified')
         s: Submission = content_dict['submission']
         if last_modified:
             self.show_lastmod(s, last_modified)
-        # sitemapにある更新日付を見る
-        parse_result: ParseResult = urlparse(s.url)
-        sitemap_url = f"{parse_result.scheme}://{parse_result.netloc}/sitemap.xml"
-        last_modified = self.parse_sitemap(sitemap_url, s.url)
-        if last_modified:
-            self.show_lastmod(s, last_modified)
 
-    def parse_sitemap(self, sitemap_url: str, target_url: str, depth: int = 0) -> Optional[str]:
+        # sitemapにある更新日付を見る
+        session: Session = requests.Session()
+        parse_result: ParseResult = urlparse(s.url)
+        # robots.txtを見に行く
         try:
-            res: Response = requests.get(sitemap_url)
+            res: Response = session.get(f"{parse_result.scheme}://{parse_result.netloc}/robots.txt")
+            for line in [robots_txt for robots_txt in res.text.split("\n") if robots_txt.startswith("Sitemap:")]:
+                (_, sitemap_url) = line.split(": ")
+                if not sitemap_url:  # もしrobots.txtに何もなければ決め打ちで取得する
+                    sitemap_url = f"{parse_result.scheme}://{parse_result.netloc}/sitemap.xml"
+                last_modified = self.parse_sitemap(sitemap_url, s.url, session)
+                if last_modified:
+                    self.show_lastmod(s, last_modified)
+                    return
+        except Exception as e:
+            logging.error("failed to access robots.txt or sitemap.xml...")
+            logging.error(traceback.format_exc())
+
+    def parse_sitemap(self, sitemap_url: str, target_url: str, session: Session, depth: int = 0) -> Optional[str]:
+        try:
+            res: Response = session.get(sitemap_url)
             if res.status_code != 200:
                 logging.error(f"[depth={depth}] failed to parse {sitemap_url}, target={target_url} no sitemap")
                 return None  # そもそもサイトマップがない
@@ -71,7 +84,7 @@ class LastmodSpider(Spider):
             if dig(raw, 'sitemapindex', 'sitemap'):
                 logging.debug(f"parse child sitemap size = {len(raw['sitemapindex']['sitemap'])}")
                 for sitemap_dict in dig(raw, 'sitemapindex', 'sitemap'):
-                    lastmod = self.parse_sitemap(sitemap_dict['loc'], target_url, depth+1)
+                    lastmod = self.parse_sitemap(sitemap_dict['loc'], target_url, session, depth+1)
                     if lastmod:
                         return lastmod
 
