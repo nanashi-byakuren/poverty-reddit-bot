@@ -1,7 +1,8 @@
 import gzip
 import logging
 import tempfile
-from typing import List
+import traceback
+from typing import List, Optional
 from urllib.parse import urlparse, ParseResult
 
 import requests
@@ -48,7 +49,7 @@ class LastmodSpider(Spider):
         if last_modified:
             self.show_lastmod(s, last_modified)
 
-    def parse_sitemap(self, sitemap_url: str, target_url: str):
+    def parse_sitemap(self, sitemap_url: str, target_url: str, depth: int = 0) -> Optional[str]:
         try:
             res: Response = requests.get(sitemap_url)
 
@@ -62,18 +63,30 @@ class LastmodSpider(Spider):
                     raw = xmltodict.parse(gzf.read())
             else:
                 raw = xmltodict.parse(res.text)
+            logging.debug(f"[depth={depth}] success to parse {sitemap_url}, target={target_url}")
 
             if dig(raw, 'sitemapindex', 'sitemap'):
+                logging.debug(f"parse child sitemap size = {len(raw['sitemapindex']['sitemap'])}")
                 for sitemap_dict in dig(raw, 'sitemapindex', 'sitemap'):
-                    lastmod = self.parse_sitemap(sitemap_dict['loc'], target_url)
+                    lastmod = self.parse_sitemap(sitemap_dict['loc'], target_url, depth+1)
                     if lastmod:
                         return lastmod
 
-            for url_dict in raw['urlset']['url']:
-                if url_dict["loc"] == target_url:
-                    return url_dict["lastmod"]
+            if dig(raw, 'urlset', 'url'):
+                for url_dict in raw['urlset']['url']:
+                    logging.debug(url_dict)
+                    if dig(url_dict, 'loc') == target_url:
+                        logging.info(f"parse urls = {len(raw['urlset']['url'])}, found hooray !")
+                        logging.info(f"sitemap dict => {url_dict}")
+                        if dig(url_dict, 'lastmod'):
+                            return dig(url_dict, 'lastmod')
+                        return '(更新日付) ないです'  # sitemap.xmlに記述はあるが、最終更新日付がない
+                logging.debug(f"parse urls = {len(raw['urlset']['url'])}, not found !")
+
         except Exception as e:
-            logging.error(f"sitemap_url: {sitemap_url}, target_url: {target_url} {e}")
+            logging.error(f"sitemap_url: {sitemap_url}, target_url: {target_url}")
+            logging.error(traceback.format_exc())
+
         return None
 
     @staticmethod

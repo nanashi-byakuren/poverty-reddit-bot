@@ -23,19 +23,22 @@ user_agent = environ.get("USER_AGENT")
 username = environ.get("USERNAME")
 password = environ.get("PASSWORD")
 
-reddit = praw.Reddit(client_id=client_id,
-                     client_secret=client_secret,
-                     user_agent=user_agent,
-                     username=username,
-                     password=password)
+reddit_instance = praw.Reddit(client_id=client_id,
+                              client_secret=client_secret,
+                              user_agent=user_agent,
+                              username=username,
+                              password=password)
 
 
 def main(args):
 
     # 私は誰
-    print(reddit.user.me())
-    # ホットなスレを出す
-    submissions: List[Submission] = list(reddit.subreddit(args.subreddit).new(limit=20))
+    print(reddit_instance.user.me())
+    # NEWなスレを出す(引数でサブミのURLが指定されたらそれを使う)
+    if args.submission_url:
+        submissions: List[Submission] = [Submission(reddit=reddit_instance, url=args.submission_url)]
+    else:
+        submissions: List[Submission] = list(reddit_instance.subreddit(args.subreddit).new(limit=20))
 
     # settings.pyで設定された内容を取得する
     settings = get_project_settings()
@@ -52,6 +55,7 @@ if __name__ == '__main__':
         description='リンクポストのURLをスクレイピングして更新日付をチェックし、だいぶ前ならば「タイムマシン速報」のフレアとコメントをつける'
     )
     parser.add_argument('--subreddit', required=False, default='newsokur', help='巡回対象サブレ')
+    parser.add_argument('--submission-url', required=False, default=None, help='巡回したいサブミをURL指定する(デバッグ用)')
     args = parser.parse_args()
 
     # scrapyのプロジェクト名を環境変数に設定する
