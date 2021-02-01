@@ -58,6 +58,11 @@ class LastmodSpider(Spider):
         last_modified: str = response.headers.get('Last-Modified')
         if last_modified:
             self.finish_logging(s, ('lastmod', last_modified))
+            return
+
+        if s.is_self:
+            self.finish_logging(s, ('lastmod', '(リンクポストじゃ) ないです'))  # サブミッションがリンクPOSTではない
+            return
 
         # sitemapにある更新日付を見る
         session: Session = requests.Session()
@@ -85,6 +90,9 @@ class LastmodSpider(Spider):
             if last_modified:
                 self.finish_logging(s, last_modified)
                 return
+
+            # 何も取得できなかった…
+            self.finish_logging(s, ('lastmod', '...?!'))
 
         except Exception as e:
             logging.error("failed to access robots.txt or sitemap.xml...")
@@ -158,5 +166,6 @@ class LastmodSpider(Spider):
             # マークダウン形式
             check: str = 'x' if is_timemachine else ''
             self.self_reply.append(f"- [{check}] **{last_modified}** [{s.title}]({s.parmalink})")
+
 
 

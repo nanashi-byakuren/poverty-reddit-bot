@@ -38,7 +38,7 @@ def main(args: argparse.Namespace):
     if args.submission_url:
         submissions: List[Submission] = [Submission(reddit=reddit_instance, url=args.submission_url)]
     else:
-        submissions: List[Submission] = list(reddit_instance.subreddit(args.subreddit).new(limit=20))
+        submissions: List[Submission] = list(reddit_instance.subreddit(args.subreddit).new(limit=args.submission_limit))
 
     # settings.pyで設定された内容を取得する
     settings = get_project_settings()
@@ -57,8 +57,9 @@ if __name__ == '__main__':
     )
     parser.add_argument('--subreddit', required=False, default='newsokur', help='巡回対象サブレ')
     parser.add_argument('--submission-url', required=False, default=None, help='巡回したいサブミをURL指定する(デバッグ用)')
+    parser.add_argument('--submission-limit', required=False, default=20, type=int, help='巡回するサブミのリミット数(デバッグ用)')
     parser.add_argument('--dry-run', required=False, action='store_true', help='「タイムマシン速報」のフレアとコメントをつけず、確認だけ行う')
-    parser.add_argument('--self-reply', required=False, action='store_false', help='抽出結果をユーザー自身の場所に書き込む')
+    parser.add_argument('--self-reply', required=False, action='store_true', help='抽出結果をユーザー自身の場所に書き込む')
     parser.add_argument('--days-old-post', required=False, default=180, type=int, help='何日前のニュースならばタイムマシンとみなすか（デフォルト180日=半年前）')
     args: argparse.Namespace = parser.parse_args()
 
