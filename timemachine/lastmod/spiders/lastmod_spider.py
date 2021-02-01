@@ -7,7 +7,7 @@ from argparse import Namespace
 from datetime import datetime
 from os import environ
 from typing import List, Optional, Tuple
-from urllib.parse import urlparse, ParseResult, quote
+from urllib.parse import urlparse, ParseResult
 
 import requests
 import xmltodict as xmltodict
@@ -17,13 +17,24 @@ from praw.models import Submission
 from requests import Response, Session
 from scrapy import Spider, Request
 
-from timemachine.ia import ia_oldest_available_url, ia_available_url
+from timemachine.ia import ia_oldest_available_url
 from timemachine.util import find_item_recursive, get_permalink
 
 
 class LastmodSpider(Spider):
 
     name = "lastmod"
+    timemachine_aa = """    昔はどんなニュースが
+    　　　　 あったのかな？
+    　　 /⌒)
+    　　∥￣
+    　　∥　／⌒ヽ　¶＿
+    　　∥_('ん` )¶∠／L_
+    　　∥_⊆_⊆ ) /_|／／|
+    　／ [二二二]／~) ／／
+    ／( / ≡≡ /(_／／／
+    [二二二二二二二|／
+    　タイムマシン速報(嫌儲)"""
 
     def __init__(self, *args, **kwargs):
         super(LastmodSpider, self).__init__(*args, **kwargs)
@@ -38,12 +49,12 @@ class LastmodSpider(Spider):
         date_str: str = dt_now.strftime('%Y年%m月%d日 %H:%M:%S')
 
         logging.info('===')
-        logging.info('\n'.join(self.self_reply))
+        logging.info('\n'.join([self.timemachine_aa] + self.self_reply))
 
         # ユーザーのprofileにサブミをPOSTしたいのです
         self.reddit.subreddit(f'u_{environ.get("USERNAME")}')\
             .submit(title=f"{date_str} - タイムマシン速報判定",
-                    selftext='\n'.join(self.self_reply))
+                    selftext='\n'.join([self.timemachine_aa] + self.self_reply))
         logging.info('===')
 
     def parse(self, response, **kwargs):
