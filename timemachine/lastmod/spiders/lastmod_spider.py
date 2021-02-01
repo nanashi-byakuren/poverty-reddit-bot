@@ -5,18 +5,20 @@ import tempfile
 import traceback
 from argparse import Namespace
 from datetime import datetime
+from os import environ
 from typing import List, Optional, Tuple
 from urllib.parse import urlparse, ParseResult, quote
 
 import requests
 import xmltodict as xmltodict
 from dict_digger import dig
+from praw import Reddit
 from praw.models import Submission
 from requests import Response, Session
 from scrapy import Spider, Request
 
 from timemachine.ia import ia_oldest_available_url, ia_available_url
-from timemachine.util import find_item_recursive
+from timemachine.util import find_item_recursive, get_permalink
 
 
 class LastmodSpider(Spider):
@@ -28,10 +30,20 @@ class LastmodSpider(Spider):
         self.submissions: List[Submission] = []
         self.args: Namespace = Namespace()
         self.self_reply = []
+        self.reddit = None
 
     def __del__(self):
+        self.reddit: Reddit = dig(self.settings.attributes, 'REDDIT').value
+        dt_now: datetime = datetime.now()
+        date_str: str = dt_now.strftime('%Y年%m月%d日 %H:%M:%S')
+
         logging.info('===')
         logging.info('\n'.join(self.self_reply))
+
+        # ユーザーのprofileにサブミをPOSTしたいのです
+        self.reddit.subreddit(f'u_{environ.get("USERNAME")}')\
+            .submit(title=f"{date_str} - タイムマシン速報判定",
+                    selftext='\n'.join(self.self_reply))
         logging.info('===')
 
     def parse(self, response, **kwargs):
@@ -153,7 +165,7 @@ class LastmodSpider(Spider):
         return None
 
     def start_logging(self, s: Submission):
-        logging.info(f"[START] {s.title}, url: {s.url}, \n permalink: https://www.reddit.com{quote(s.permalink)}")
+        logging.info(f"[START] {s.title}, url: {s.url}, \n permalink: {get_permalink(s)}")
 
     def finish_logging(self, s: Submission, last_modified: Tuple[str, str]):
         logging.info(f"[FINISH] {s.title}, url: {s.url}, {last_modified}")
@@ -165,7 +177,7 @@ class LastmodSpider(Spider):
         if self.args.self_reply:
             # マークダウン形式
             check: str = 'x' if is_timemachine else ''
-            self.self_reply.append(f"- [{check}] **{last_modified}** [{s.title}]({s.parmalink})")
+            self.self_reply.append(f"- [{s.title}]({get_permalink(s)})\n  - **{last_modified}**")
 
 
 

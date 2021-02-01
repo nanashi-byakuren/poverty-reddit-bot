@@ -1,4 +1,7 @@
 from typing import Pattern, Optional, Tuple
+from urllib.parse import quote
+
+from praw.models import Submission
 
 
 def find_item_recursive(obj: dict, key_r: Pattern) -> Optional[Tuple[str, str]]:
@@ -12,3 +15,7 @@ def find_item_recursive(obj: dict, key_r: Pattern) -> Optional[Tuple[str, str]]:
             if item is not None:
                 return item
     return None
+
+
+def get_permalink(s: Submission) -> str:
+    return f"https://www.reddit.com{quote(s.permalink)}"

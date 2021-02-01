@@ -44,6 +44,7 @@ def main(args: argparse.Namespace):
     settings = get_project_settings()
     settings['SUBMISSIONS'] = submissions
     settings['ARGS_OPTS'] = args
+    settings['REDDIT'] = reddit_instance
 
     # スクレイピングのプロセスを動かす
     process = CrawlerProcess(settings=settings)
