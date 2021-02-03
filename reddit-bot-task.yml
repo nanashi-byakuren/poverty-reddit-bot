@@ -1,0 +1,14 @@
+- hosts: reddit_bot_server
+  gather_facts: yes
+  tasks:
+    - name: debug lookup("env", "PWD")
+      debug:
+        var: lookup("env", "PWD")
+
+    - name: debug ansible_env.PWD
+      debug:
+        var: ansible_env.PWD
+
+    - name: debug ansible_env
+      debug:
+        var: ansible_env
