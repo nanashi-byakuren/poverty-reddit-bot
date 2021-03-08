@@ -39,15 +39,22 @@ $ pip install -r requirements.txt
 ```
 
 ### サーバへのデプロイ
+- ライブラリのインストール
 
-```
-// ライブラリのインストール
+```shell
 $ pip install -r requirements-dev.txt
+```
 
-// .envファイルの作成
+- .envファイルを作成し以下のパラメーターを埋める
+  - `ANSIBLE_HOST=`
+  - `ANSIBLE_PORT=`
+  - `ANSIBLE_SSH_KEY=`
+```shell
 $ cp .env.sample .env
+```
 
-// ansible-playbook.shの実行
+- ansible-playbook.shの実行
+```shell
 $ chmod +x ./ansible-playbook.sh
 $ ./ansible-playbook.sh -i reddit-bot-host.yml reddit-bot-task.yml
 ```
