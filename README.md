@@ -98,21 +98,18 @@ $ gcloud iam service-accounts keys create ~/.gcp/reddit-cred.json \
   --iam-account={サービスアカウント名}@{上で確認したGCPのプロジェクトID}.iam.gserviceaccount.com
 ```
 
-#### Ansibleで使用する設定ファイルを作成
+#### Terraformで使用する設定ファイルを作成
 
-- .envファイルを作成し以下のパラメーターを埋める
-  - `ANSIBLE_HOST=`
-  - `ANSIBLE_PORT=`
-  - `ANSIBLE_SSH_KEY=`
-  - `GCP_PROJECT_ID={GCPのプロジェクトID}`
-  - `GCP_SERVICE_ACCOUNT_FILE=~/.gcp/reddit-cred.json`
+- `vars.tfvars`ファイルを作成し以下のパラメーターを埋める
+  - `GCP_PROJECT_ID="{GCPのプロジェクトID}"`
+  - `GCP_SERVICE_ACCOUNT_FILE="~/.gcp/reddit-cred.json"`
 
 ```shell
-$ cp .env.sample .env
+$ cp vars.tfvars.sample vars.tfvars
 ```
 
-- ansible-playbook.shの実行、GCPのCloudFunctionにデプロイする
+- terraformの実行、GCPのCloudFunctionにデプロイする
 ```shell
-$ chmod +x ./ansible-playbook.sh
-$ ./ansible-playbook.sh -i reddit-bot-host.yml reddit-bot-task.yml
+$ terraform init
+$ terraform plan -var-file=vars.tfvars
 ```
