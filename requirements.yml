@@ -1,3 +1,0 @@
-collections:
-  # for GCP from galaxy collection
-  - google.cloud
