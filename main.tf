@@ -1,6 +1,7 @@
 variable "GCP_PROJECT_ID" {}
 variable "GCP_SERVICE_ACCOUNT_FILE" {}
 variable "GCP_ACCOUNT" {}
+variable "SLACK_SIGNING_SECRET" {}
 
 provider "google" {
   credentials = file("~/.gcp/reddit-cred.json")
@@ -28,7 +29,7 @@ resource "google_storage_bucket_object" "archive" {
 
 resource "google_cloudfunctions_function" "function" {
   name = "reddit-bot-function"
-  description = "My function"
+  description = "Receive slack notification, and convert to reddit link post"
   runtime = "python38"
 
   available_memory_mb = 128
@@ -36,13 +37,13 @@ resource "google_cloudfunctions_function" "function" {
   source_archive_object = google_storage_bucket_object.archive.name
   trigger_http = true
   timeout = 60
-  entry_point = "hello_world"
+  entry_point = "slack_to_reddit"
   //  labels = {
   //    my-label = "my-label-value"
   //  }
-  //  environment_variables = {
-  //    MY_ENV_VAR = "my-env-var-value"
-  //  }
+  environment_variables = {
+    SLACK_SIGNING_SECRET = var.SLACK_SIGNING_SECRET
+  }
 }
 
 # IAM entry for a single user to invoke the function
@@ -52,6 +53,5 @@ resource "google_cloudfunctions_function_iam_member" "invoker" {
   cloud_function = google_cloudfunctions_function.function.name
 
   role = "roles/cloudfunctions.invoker"
-  //member = "user:myFunctionInvoker@example.com"
   member = var.GCP_ACCOUNT
 }
