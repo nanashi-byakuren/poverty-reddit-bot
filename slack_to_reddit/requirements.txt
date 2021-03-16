@@ -1,3 +1,4 @@
 praw==7.1.0
 slackeventsapi==2.2.1
 attrdict==2.0.1
+dict_digger==0.2.1

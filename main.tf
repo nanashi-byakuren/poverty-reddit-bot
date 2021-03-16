@@ -26,7 +26,7 @@ resource "google_storage_bucket_object" "archive" {
   # https://qiita.com/nii_yan/items/c03871ec252b12fb238d
   name = "${data.archive_file.slack_to_reddit.output_md5}.zip"
   bucket = google_storage_bucket.bucket.name
-  source = "./slack-to-reddit.zip"
+  source = data.archive_file.slack_to_reddit.output_path
 }
 
 resource "google_cloudfunctions_function" "function" {
