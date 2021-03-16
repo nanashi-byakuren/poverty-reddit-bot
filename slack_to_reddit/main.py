@@ -4,12 +4,16 @@ import re
 from urllib.request import build_opener, Request
 
 from dict_digger import dig
-from slackeventsapi import SlackEventAdapter
+from slack_sdk import WebClient
 
-SLACK_SIGNING_SECRET = os.environ["SLACK_SIGNING_SECRET"]
-slack_events_adapter = SlackEventAdapter(SLACK_SIGNING_SECRET, "/slack/events")
+# Bot User OAuth Token, "xoxb-"から始まる文字列
+from slack_to_reddit.logging_slack import logger
 
 
+slack_client = WebClient(token=os.environ['SLACK_BOT_TOKEN'])
+
+
+@logger
 def slack_to_reddit(request):
     request_json = request.get_json(silent=True)
     print(request_json)
@@ -30,4 +34,4 @@ def slack_to_reddit(request):
 
         return {'title': html.unescape(title), 'url': opener.open(req).geturl()}
 
-    return None
+    raise ValueError

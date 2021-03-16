@@ -29,5 +29,11 @@ def test_slack_to_reddit2():
     assert 'url' in res
 
 
+def test_if_error():
+    data = {'event': 'broken data boo!'}
+    req = Mock(get_json=Mock(return_value=data), args=data)
+    assert slack_to_reddit(req) == {'message': 'error'}, "error message not matched"
+
+
 if __name__ == '__main__':
     unittest.main()

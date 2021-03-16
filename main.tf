@@ -1,7 +1,7 @@
 variable "GCP_PROJECT_ID" {}
 variable "GCP_SERVICE_ACCOUNT_FILE" {}
 variable "GCP_ACCOUNT" {}
-variable "SLACK_SIGNING_SECRET" {}
+variable "SLACK_BOT_TOKEN" {}
 
 provider "google" {
   credentials = file("~/.gcp/reddit-cred.json")
@@ -41,7 +41,7 @@ resource "google_cloudfunctions_function" "function" {
   timeout = 60
   entry_point = "slack_to_reddit"
   environment_variables = {
-    SLACK_SIGNING_SECRET = var.SLACK_SIGNING_SECRET
+    SLACK_SIGNING_SECRET = var.SLACK_BOT_TOKEN
   }
 }
 
