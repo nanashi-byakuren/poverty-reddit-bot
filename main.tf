@@ -15,14 +15,16 @@ resource "google_storage_bucket" "bucket" {
   force_destroy = true
 }
 
-data "archive_file" "query_runner_archive" {
+data "archive_file" "slack_to_reddit" {
   type = "zip"
-  source_dir = "./slack-to-reddit"
-  output_path = "./slack-to-reddit.zip"
+  source_dir = "./slack_to_reddit"
+  output_path = "./slack_to_reddit.zip"
 }
 
 resource "google_storage_bucket_object" "archive" {
-  name = "source.zip"
+  # ソースが変更されたらmd5値が変更され、アップロードのトリガーになる
+  # https://qiita.com/nii_yan/items/c03871ec252b12fb238d
+  name = "${data.archive_file.slack_to_reddit.output_md5}.zip"
   bucket = google_storage_bucket.bucket.name
   source = "./slack-to-reddit.zip"
 }
@@ -38,9 +40,6 @@ resource "google_cloudfunctions_function" "function" {
   trigger_http = true
   timeout = 60
   entry_point = "slack_to_reddit"
-  //  labels = {
-  //    my-label = "my-label-value"
-  //  }
   environment_variables = {
     SLACK_SIGNING_SECRET = var.SLACK_SIGNING_SECRET
   }
@@ -53,5 +52,6 @@ resource "google_cloudfunctions_function_iam_member" "invoker" {
   cloud_function = google_cloudfunctions_function.function.name
 
   role = "roles/cloudfunctions.invoker"
-  member = var.GCP_ACCOUNT
+  #member = var.GCP_ACCOUNT
+  member = "allUsers"
 }
