@@ -3,6 +3,7 @@ variable "GCP_SERVICE_ACCOUNT_FILE" {}
 variable "GCP_ACCOUNT" {}
 variable "SLACK_BOT_TOKEN" {}
 variable "SUBSCRIBE_CHANNEL_IDS" {}
+variable "GOOGLE_NEWS_CHANNEL_ID" {}
 
 provider "google" {
   credentials = file("~/.gcp/reddit-cred.json")
@@ -55,6 +56,7 @@ resource "google_cloudfunctions_function" "function" {
   environment_variables = {
     SLACK_BOT_TOKEN = var.SLACK_BOT_TOKEN
     SUBSCRIBE_CHANNEL_IDS = var.SUBSCRIBE_CHANNEL_IDS
+    GOOGLE_NEWS_CHANNEL_ID = var.GOOGLE_NEWS_CHANNEL_ID
   }
 }
 

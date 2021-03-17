@@ -1,5 +1,4 @@
 import os
-import traceback
 from typing import List
 
 from slack_sdk import WebClient
@@ -13,7 +12,6 @@ def logger(func):
         try:
             return func(*args, **kwargs)
         except:
-            formatted_lines: List[str] = traceback.format_exc().splitlines()
             slack_client: WebClient = WebClient(token=os.environ['SLACK_BOT_TOKEN'])
             slack_client.chat_postMessage(channel='#bot-debug',
                                           blocks=[
@@ -21,7 +19,15 @@ def logger(func):
                                                   "type": "section",
                                                   "text": {
                                                       "type": "mrkdwn",
-                                                      "text": '\n'.join(formatted_lines),
+                                                      "text": "以下をRedditにPOST",
+                                                  }
+                                              },
+                                              {"type": "divider"},
+                                              {
+                                                  "type": "section",
+                                                  "text": {
+                                                      "type": "mrkdwn",
+                                                      "text": '\n'.join(args),
                                                   }
                                               }
                                           ])
