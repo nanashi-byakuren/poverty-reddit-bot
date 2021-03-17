@@ -26,16 +26,21 @@ def slack_to_reddit(request):
 
         if request_json and 'event' in request_json and dig(request_json, 'event', 'type') == 'message':
             # Google News
-            text = dig(request_json, 'event', 'message', 'text')
-            text = text[1:-1]
-            regex = re.compile(r"([^>]*)?oc=.([^>]*)>")
-            short_url = regex.match(text).group(1)
-            title = regex.match(text).group(2)
+            try:
+                text = dig(request_json, 'event', 'text')
+                print(text)
+                text = text[1:-1]
+                regex = re.compile(r"([^>]*)?oc=.([^>]*)>")
+                short_url = regex.match(text).group(1)
+                title = regex.match(text).group(2)
 
-            opener = build_opener()
-            req = Request(short_url)
+                opener = build_opener()
+                req = Request(short_url)
 
-            return {'title': html.unescape(title), 'url': opener.open(req).geturl()}
+                return {'title': html.unescape(title), 'url': opener.open(req).geturl()}
+            except:
+                raise ValueError(dig(request_json, 'event', 'text'))
+
     except:
         formatted_lines: List[str] = traceback.format_exc().splitlines()
         if dig(request_json, 'event', 'channel') in subscribe_channels:
@@ -55,7 +60,15 @@ def debug_to_slack(message: str, channel_name: str = '#bot-debug'):
                                           "type": "section",
                                           "text": {
                                               "type": "mrkdwn",
-                                              "text": message,
+                                              "text": "以下の部分でエラー発生",
+                                          }
+                                      },
+                                      {"type": "divider"},
+                                      {
+                                          "type": "section",
+                                          "text": {
+                                              "type": "mrkdwn",
+                                              "text": f"```{message}```",
                                           }
                                       }
                                   ])
