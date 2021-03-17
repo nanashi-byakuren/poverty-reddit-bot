@@ -2,6 +2,7 @@ variable "GCP_PROJECT_ID" {}
 variable "GCP_SERVICE_ACCOUNT_FILE" {}
 variable "GCP_ACCOUNT" {}
 variable "SLACK_BOT_TOKEN" {}
+variable "SUBSCRIBE_CHANNEL_IDS" {}
 
 provider "google" {
   credentials = file("~/.gcp/reddit-cred.json")
@@ -15,7 +16,18 @@ resource "google_storage_bucket" "bucket" {
   force_destroy = true
 }
 
+# https://cloud.google.com/functions/docs/writing/specifying-dependencies-python?hl=ja
+resource "null_resource" "pip_install" {
+  triggers = {
+    always_run = timestamp()
+  }
+  provisioner "local-exec" {
+    command = "pip install -t ./slack_to_reddit/localpackage -r ./slack_to_reddit/requirements.txt"
+  }
+}
+
 data "archive_file" "slack_to_reddit" {
+  depends_on = [ null_resource.pip_install ]
   type = "zip"
   source_dir = "./slack_to_reddit"
   output_path = "./slack_to_reddit.zip"
@@ -41,7 +53,8 @@ resource "google_cloudfunctions_function" "function" {
   timeout = 60
   entry_point = "slack_to_reddit"
   environment_variables = {
-    SLACK_SIGNING_SECRET = var.SLACK_BOT_TOKEN
+    SLACK_BOT_TOKEN = var.SLACK_BOT_TOKEN
+    SUBSCRIBE_CHANNEL_IDS = var.SUBSCRIBE_CHANNEL_IDS
   }
 }
 

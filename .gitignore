@@ -130,4 +130,10 @@ dmypy.json
 
 # PyCharm
 .idea/
+
+# terraform
 vars.tfvars
+*.tfstate
+*.tfstate.backup
+*.zip
+.terraform/
