@@ -11,15 +11,16 @@ def logger(func):
     """ logger """
     def wrapper(*args, **kwargs):
         try:
-            print(f'start {func}, args: {args}, kwargs: {kwargs}')
+            print(f'start {func.__name__}, args: {args}, kwargs: {kwargs}')
             result = func(*args, **kwargs)
-            print(f'finish {func}, result: {result}')
+            print(f'finish {func.__name__}, result: {result}')
             return result
         except:
             formatted_lines: List[str] = traceback.format_exc().splitlines()
             print(formatted_lines)
             return {
-                "message": "error"
+                "success": False,
+                "message": '\n'.join(formatted_lines)
             }
 
     return wrapper

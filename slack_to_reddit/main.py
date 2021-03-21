@@ -7,10 +7,12 @@ from typing import List
 from urllib.request import build_opener, Request
 
 from dict_digger import dig
+from praw.reddit import Submission
 from slack_sdk import WebClient
 
 # Bot User OAuth Token, "xoxb-"から始まる文字列
 from logging_slack import logger, debug_to_slack
+from post_to_reddit import exec_link_post
 
 slack_client = WebClient(token=os.environ['SLACK_BOT_TOKEN'])
 subscribe_channels: List[str] = os.environ['SUBSCRIBE_CHANNEL_IDS'].split(",")
@@ -20,6 +22,7 @@ google_news_ch_id: str = os.environ['GOOGLE_NEWS_CHANNEL_ID']
 @logger
 def slack_to_reddit(request):
     request_json: dict = request.get_json(silent=True)
+    print(request_json)
 
     try:
         if request_json and 'type' in request_json and 'challenge' in request_json:
@@ -29,9 +32,16 @@ def slack_to_reddit(request):
             result = process_subscribe_ch(request_json)
             if result is None:
                 return {
+                    "success": False,
                     "message": "error"
                 }
             return result
+
+        # 何も実行されなかった
+        return {
+            "success": False,
+            "message": "error"
+        }
 
     except:
         formatted_lines: List[str] = traceback.format_exc().splitlines()
@@ -55,6 +65,7 @@ def process_subscribe_ch(request_json: dict):
             return process_google_news(request_json)
 
         return {
+            "success": False,
             "message": "no subscribing channel"
         }
     except Exception as e:
@@ -81,7 +92,8 @@ def process_google_news(request_json: dict):
             link_post = {'title': html.unescape(title), 'url': opener.open(req).geturl()}
             post_to_reddit(link_post)
             return {
-                "message": "success"
+                "success": True,
+                "message": f"link posted {link_post}"
             }
         except:
             raise ValueError(dig(request_json, 'event', 'text'))
@@ -89,4 +101,6 @@ def process_google_news(request_json: dict):
 
 @logger
 def post_to_reddit(link_post: dict):
-    debug_to_slack('redditにlink post!', link_post.__str__())
+    sub: Submission = exec_link_post(link_post)
+    if sub is not None:
+        debug_to_slack('redditにlink post!', link_post.__str__())

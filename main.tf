@@ -5,6 +5,12 @@ variable "SLACK_BOT_TOKEN" {}
 variable "SUBSCRIBE_CHANNEL_IDS" {}
 variable "GOOGLE_NEWS_CHANNEL_ID" {}
 
+variable "CLIENT_ID" {}
+variable "CLIENT_SECRET" {}
+variable "USER_AGENT" {}
+variable "USERNAME" {}
+variable "PASSWORD" {}
+
 provider "google" {
   credentials = file("~/.gcp/reddit-cred.json")
   project = var.GCP_PROJECT_ID
@@ -54,9 +60,16 @@ resource "google_cloudfunctions_function" "function" {
   timeout = 60
   entry_point = "slack_to_reddit"
   environment_variables = {
+    # Slack
     SLACK_BOT_TOKEN = var.SLACK_BOT_TOKEN
     SUBSCRIBE_CHANNEL_IDS = var.SUBSCRIBE_CHANNEL_IDS
     GOOGLE_NEWS_CHANNEL_ID = var.GOOGLE_NEWS_CHANNEL_ID
+    # Reddit
+    CLIENT_ID = var.CLIENT_ID
+    CLIENT_SECRET = var.CLIENT_SECRET
+    USER_AGENT = var.USER_AGENT
+    USERNAME = var.USERNAME
+    PASSWORD = var.PASSWORD
   }
 }
 
