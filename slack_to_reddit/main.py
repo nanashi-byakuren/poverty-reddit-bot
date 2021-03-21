@@ -94,5 +94,6 @@ def process_google_news(request_json: dict):
                 "success": True if sub is not None else False,
                 "message": f"link posted {sub if sub is not None else 'failed'}"
             }
-        except:
-            raise ValueError(dig(request_json, 'event', 'text'))
+        except Exception as e:
+            trace = sys.exc_info()[2]
+            raise ValueError(e).with_traceback(trace)
