@@ -3,7 +3,7 @@ import os
 import re
 import sys
 import traceback
-from typing import List
+from typing import List, Optional
 from urllib.request import build_opener, Request
 
 from dict_digger import dig
@@ -88,19 +88,11 @@ def process_google_news(request_json: dict):
 
             opener = build_opener()
             req = Request(short_url)
-
-            link_post = {'title': html.unescape(title), 'url': opener.open(req).geturl()}
-            post_to_reddit(link_post)
+            # 実際にRedditにlink postする
+            sub: Optional[Submission] = exec_link_post({'title': html.unescape(title), 'url': opener.open(req).geturl()})
             return {
-                "success": True,
-                "message": f"link posted {link_post}"
+                "success": True if sub is not None else False,
+                "message": f"link posted {sub if sub is not None else 'failed'}"
             }
         except:
             raise ValueError(dig(request_json, 'event', 'text'))
-
-
-@logger
-def post_to_reddit(link_post: dict):
-    sub: Submission = exec_link_post(link_post)
-    if sub is not None:
-        debug_to_slack('redditにlink post!', link_post.__str__())

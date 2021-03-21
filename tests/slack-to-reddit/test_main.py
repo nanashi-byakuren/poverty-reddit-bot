@@ -28,7 +28,8 @@ def test_slack_to_reddit():
 def test_slack_to_reddit_if_error():
     data = {'event': 'broken data boo!'}
     req = Mock(get_json=Mock(return_value=data), args=data)
-    assert slack_to_reddit(req) == {'message': 'error'}, "error message not matched"
+    res = slack_to_reddit(req)
+    assert 'success' in res and res['success'] == False, f"{res}"
 
 
 if __name__ == '__main__':
