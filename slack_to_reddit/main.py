@@ -4,8 +4,8 @@ import re
 import sys
 import traceback
 from typing import List, Optional
-from urllib.request import build_opener, Request
 
+import requests
 from dict_digger import dig
 from praw.reddit import Submission
 from slack_sdk import WebClient
@@ -86,10 +86,10 @@ def process_google_news(request_json: dict):
             short_url = regex.match(text).group(1)
             title = regex.match(text).group(2)
 
-            opener = build_opener()
-            req = Request(short_url)
+            response = requests.head(short_url, allow_redirects=False)
+            url = response.headers['Location'] if 'Location' in response.headers else short_url
             # 実際にRedditにlink postする
-            sub: Optional[Submission] = exec_link_post({'title': html.unescape(title), 'url': opener.open(req).geturl()})
+            sub: Optional[Submission] = exec_link_post({'title': html.unescape(title), 'url': url})
             return {
                 "success": True if sub is not None else False,
                 "message": f"link posted {sub if sub is not None else 'failed'}"
