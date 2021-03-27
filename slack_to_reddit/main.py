@@ -79,20 +79,26 @@ def process_google_news(request_json: dict):
     if request_json and 'event' in request_json and dig(request_json, 'event', 'type') == 'message':
         # Google News
         try:
-            text = dig(request_json, 'event', 'text')
-            print(text)
-            text = text[1:-1]
-            regex = re.compile(r"([^>]*)?oc=.([^>]*)>")
-            short_url = regex.match(text).group(1)
-            title = regex.match(text).group(2)
+            error = False
+            error_logs = []
 
-            response = requests.head(short_url, allow_redirects=False)
-            url = response.headers['Location'] if 'Location' in response.headers else short_url
-            # 実際にRedditにlink postする
-            sub: Optional[Submission] = exec_link_post({'title': html.unescape(title), 'url': url})
+            for attachment in dig(request_json, 'event', 'message', 'attachments'):
+                print(attachment)
+                title = attachment['title']
+                short_url = attachment['title_link']
+
+                response = requests.head(short_url, allow_redirects=False)
+                url = response.headers['Location'] if 'Location' in response.headers else short_url
+
+                # 実際にRedditにlink postする
+                sub: Optional[Submission] = exec_link_post({'title': html.unescape(title), 'url': url})
+                error = True if sub is None else False
+                if sub is None:
+                    error_logs += {'title': html.unescape(title), 'url': url}
+
             return {
-                "success": True if sub is not None else False,
-                "message": f"link posted {sub if sub is not None else 'failed'}"
+                "success": not error,
+                "message": f"link posted {error_logs}"
             }
         except Exception as e:
             trace = sys.exc_info()[2]
