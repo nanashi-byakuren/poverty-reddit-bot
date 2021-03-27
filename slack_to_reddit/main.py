@@ -22,12 +22,20 @@ google_news_ch_id: str = os.environ['GOOGLE_NEWS_CHANNEL_ID']
 @logger
 def slack_to_reddit(request):
     request_json: dict = request.get_json(silent=True)
-    print(request_json)
+    print(f"request header: {dict(request.headers)}")
+    print(f"request body: {request_json}")
 
     try:
+        # Events APIの疎通確認の場合優先してレスポンスを返す
         if request_json and 'type' in request_json and 'challenge' in request_json:
             return {'challenge': request_json['challenge']}
 
+        # Slack側からのリクエスト再送の場合、再送不要としてレスポンスを返す
+        # ref: https://dev.classmethod.jp/articles/slack-resend-matome/
+        if dig(dict(request.headers), 'X-Slack-Retry-Num'):
+            return {'success': True, 'message': 'No need to resend'}
+
+        # Slackの方で監視しているチャンネルの場合処理を実行する
         if dig(request_json, 'event', 'channel') in subscribe_channels:
             result = process_subscribe_ch(request_json)
             if result is None:
