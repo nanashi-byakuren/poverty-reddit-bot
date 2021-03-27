@@ -1,10 +1,13 @@
 // vars.tfvarsファイルのサンプル
+// Slack関連
 CLIENT_ID=""
 CLIENT_SECRET=""
 USER_AGENT=""
 USERNAME=""
 PASSWORD=""
+SUBREDDIT=""
 
+// GCP関連
 GCP_PROJECT_ID=""
 GCP_SERVICE_ACCOUNT_FILE="~/.gcp/reddit-cred.json"
 GCP_ACCOUNT=""

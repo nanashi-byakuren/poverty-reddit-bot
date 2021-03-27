@@ -6,9 +6,9 @@
 
 - サーバ上でバッチ的に動かします
 
-## botを動かす
+## botを動かす準備
 
-### credentialを得る
+### Redditのcredentialを得る
 
 参考: [OAuth2 Quick Start Example](https://github.com/reddit-archive/reddit/wiki/OAuth2-Quick-Start-Example)
 
@@ -20,14 +20,23 @@
     - about url: 一応GitHubのリポジトリにしてる
     - redirect url: 一応GitHubのリポジトリにしてる
 
-上記をやると以下の情報がもらえる、右は例
+上記をやると以下のような情報がもらえる
 
 - ユーザー名: `reddit_bot`
 - パスワード: `snoo`
 - OAuthのclient ID: `p-jcoLKBynTLew`
 - OAuthのclient secret: `gko_LXELoV07ZBNUXrvWZfzE3aI`
 
+### Slackのbotを作成する
 
+TODO: 詳しいやり方は各自調査してください
+
+- 必要なこと
+  - Slack APIのページからアプリを作成
+  - Slack APIのページからbot用のトークンを取得
+  - GoogleNewsのRSSを投稿するチャンネルを作成し、RSSをそこに流す
+  - `#bot-debug` というチャンネルを作成しておく
+  - 各チャンネルにはbotを招待しておく
 
 ### ビルドと実行
 
@@ -100,17 +109,39 @@ $ gcloud iam service-accounts keys create ~/.gcp/reddit-cred.json \
 
 #### Terraformで使用する設定ファイルを作成
 
-- `vars.tfvars`ファイルを作成し以下のパラメーターを埋める
-  - `GCP_PROJECT_ID="{GCPのプロジェクトID}"`
-  - `GCP_SERVICE_ACCOUNT_FILE="~/.gcp/reddit-cred.json"`
+`vars.tfvars`ファイルを作成する。
 
 ```shell
 $ cp vars.tfvars.sample vars.tfvars
 ```
 
-- terraformの実行、GCPのCloudFunctionにデプロイする
+ファイルを編集し以下のパラメーターを設定する
+
+- Reddit関連
+  - `CLIENT_ID="{OAuthのclient ID}"`
+  - `CLIENT_SECRET="{OAuthのclient secret}"`
+  - `USER_AGENT="{任意のユーザーエージェント}"`
+  - `USERNAME="{redditで使用するbotのusername}"`
+  - `PASSWORD="{redditで使用するbotのpassword}"`
+  - `SUBREDDIT="{POST対象のサブレディット名、「r/」はつけない（例: redditdev）}"`
+
+- GCP関連
+  - `GCP_PROJECT_ID="{GCPのプロジェクトID}"`
+  - `GCP_SERVICE_ACCOUNT_FILE="~/.gcp/reddit-cred.json"`
+  - `GCP_ACCOUNT="{サービスアカウント名}@{GCPのプロジェクトID}.iam.gserviceaccount.com"`
+
+- Slack関連
+  - `SLACK_BOT_TOKEN="{Slackのbot用トークン(xoxb-で始まる)}"`
+  - `SUBSCRIBE_CHANNEL_IDS="XXXXXXXXX,YYYYYYYYY"` ... 監視したいSlackのチャンネルIDをカンマ区切り
+  - `GOOGLE_NEWS_CHANNEL_ID="XXXXXXXXX"` ... GoogleNewsのRSSを投稿するチャンネルID
+
+
+- terraformを実行し、GCPのCloudFunctionにデプロイする
+
 ```shell
 $ terraform init
 $ terraform plan -var-file=vars.tfvars
 $ terraform apply -var-file=vars.tfvars
 ```
+
+後は投稿されるのを待つ。わざとじゃなくてもやりすぎるとBANされると思うのでいたずらはやめよう。

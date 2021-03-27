@@ -10,6 +10,7 @@ variable "CLIENT_SECRET" {}
 variable "USER_AGENT" {}
 variable "USERNAME" {}
 variable "PASSWORD" {}
+variable "SUBREDDIT" {}
 
 provider "google" {
   credentials = file("~/.gcp/reddit-cred.json")
@@ -70,6 +71,7 @@ resource "google_cloudfunctions_function" "function" {
     USER_AGENT = var.USER_AGENT
     USERNAME = var.USERNAME
     PASSWORD = var.PASSWORD
+    SUBREDDIT = var.SUBREDDIT
   }
 }
 
