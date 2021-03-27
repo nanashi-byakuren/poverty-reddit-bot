@@ -82,7 +82,7 @@ def process_google_news(request_json: dict):
             error = False
             error_logs = []
 
-            for attachment in dig(request_json, 'event', 'message', 'attachments'):
+            for attachment in dig(request_json, 'event', 'attachments'):
                 print(attachment)
                 title = attachment['title']
                 short_url = attachment['title_link']
