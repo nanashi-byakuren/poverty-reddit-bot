@@ -1,6 +1,5 @@
 import html
 import os
-import re
 import sys
 import traceback
 from typing import List, Optional

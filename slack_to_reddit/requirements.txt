@@ -1,4 +1,4 @@
-praw==7.1.0
+praw==7.2.0
 slackeventsapi==2.2.1
 slack-sdk==3.4.2
 attrdict==2.0.1
